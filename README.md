@@ -4,8 +4,7 @@ This is a simple C++ implementation of a matrix library in C++.
 ## Usage
 In order to use the library in your own project using cmake, add these commands to your CMakeLists.txt:
 
-'''
-add_subdirectory(vendor/matrix EXCLUDE_FROM_ALL)
+'''add_subdirectory(vendor/matrix EXCLUDE_FROM_ALL)
 target_link_libraries(target_executable matrix)
 '''
 
@@ -15,8 +14,7 @@ To see how to use the library check the provided example file in the example dir
 
 ## Running the example
 To run the provided example use these commands:
-'''
-bash
+'''bash
 git clone https://github.com/StanislavPavlic/matrix-lib.git matrix-lib
 cd matrix-lib
 mkdir build
