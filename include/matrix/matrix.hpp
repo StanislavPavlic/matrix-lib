@@ -633,14 +633,11 @@ namespace matrix {
 
             Matrix inv(rows_);
             auto decomp = lup();
-            Matrix identity(rows_, cols_, 0);
+            auto P = decomp.second.first.transpose();
             for (int i = 0; i < rows_; ++i) {
-                identity[i][i] = 1;
-            }
-            for (int i = 0; i < rows_; ++i) {
-                Matrix b = {identity[i]};
+                Matrix b = {P[i]};
                 b = b.transpose();
-                inv[i] = (decomp.first.bwd_sub(decomp.first.fwd_sub(decomp.second.first * b))).transpose().m_[0];
+                inv[i] = (decomp.first.bwd_sub(decomp.first.fwd_sub(b))).transpose().m_[0];
             }
             return inv.transpose();
         }
