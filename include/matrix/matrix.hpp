@@ -1,9 +1,5 @@
-#pragma clang diagnostic push
-#pragma ide diagnostic ignored "readability-const-return-type"
-#pragma clang diagnostic push
-#pragma ide diagnostic ignored "OCUnusedGlobalDeclarationInspection"
-#ifndef APR_MATRIX_H
-#define APR_MATRIX_H
+#ifndef MATRIX_H
+#define MATRIX_H
 
 
 #include <iostream>
@@ -11,10 +7,11 @@
 #include <sstream>
 #include <vector>
 #include <cmath>
+#include <functional>
 
 namespace matrix {
 
-    constexpr double TOL = 10e-6;
+    constexpr double TOL = 1e-6;
 
     template<typename T>
     using matrix_t = std::vector<std::vector<T>>;
@@ -26,10 +23,13 @@ namespace matrix {
     using vec_t = std::vector<T>;
 
     template<typename T>
+    using f_t = std::function<T(T)>;
+
+    template<typename T>
     class Matrix {
     public:
         /**
-         * Default constructor
+         * Default matrix constructor
          */
         Matrix() : rows_(0), cols_(0), m_() {};
 
@@ -52,7 +52,7 @@ namespace matrix {
          * @param cols number of columns
          * @param m matrix
          */
-        Matrix(std::size_t rows, std::size_t cols, const matrix_t<T> &m) : rows_(rows), cols_(cols), m_(m) {}
+        Matrix(std::size_t rows, std::size_t cols, const matrix_t<T>& m) : rows_(rows), cols_(cols), m_(m) {}
 
         /**
          * Construct matrix with certain value
@@ -66,25 +66,27 @@ namespace matrix {
          * Raw matrix representation constructor
          * @param m matrix
          */
-        explicit Matrix(const matrix_t<T> &m) : rows_(m.size()), cols_(m.size() ? m[0].size() : 0), m_(m) {}
+        explicit Matrix(const matrix_t<T>& m) : rows_(m.size()), cols_(m.size() ? m[0].size() : 0), m_(m) {}
 
         /**
          * From file constructor
          * @param filename file to be used for construction
          */
-        explicit Matrix(const std::string &filename) : Matrix(read_constr(filename)) {}
+        explicit Matrix(const std::string& filename) : Matrix(read_constr(filename)) {}
 
         /**
          * Custom matrix constructor
          * @param list vector of vectors in the form of std::initializer_list to be used for construction
          */
-        Matrix(std::initializer_list<std::vector<T>> list) : rows_(list.size()), cols_(list.size() ? list.begin()->size() : 0), m_(list) {}
+        Matrix(std::initializer_list<std::vector<T>> list) : rows_(list.size()),
+                                                             cols_(list.size() ? list.begin()->size() : 0), 
+                                                             m_(list) {}
 
         /**
          * Copy constructor
          * @param matrix source matrix to be copied
          */
-        Matrix(const Matrix &matrix) : rows_(matrix.rows_), cols_(matrix.cols_), m_(matrix.m_) {}
+        Matrix(const Matrix& matrix) : rows_(matrix.rows_), cols_(matrix.cols_), m_(matrix.m_) {}
 
         /**
          * Default destructor
@@ -116,11 +118,39 @@ namespace matrix {
         }
 
         /**
+         * Return row at index idx as matrix
+         * @param idx index of queried row
+         * @return row at index idx as matrix
+         */
+        Matrix row(int idx) const {
+            if (idx < 0 || idx > rows_) {
+                throw std::invalid_argument("row index out of bounds");
+            }
+            return {m_[idx]};
+        }
+
+        /**
+         * Return column at index idx as matrix
+         * @param idx index of queried column
+         * @return column at index idx as matrix
+         */
+        Matrix col(int idx) const {
+            if (idx < 0 || idx > cols_) {
+                throw std::invalid_argument("column index out of bounds");
+            }
+            Matrix c(rows_, 1);
+            for (int i = 0; i < rows_; ++i) {
+                c[i][0] = m_[i][idx];
+            }
+            return c;
+        }
+
+        /**
          * Assignment operator
          * @param matrix source matrix to be assigned
          * @return reference to result matrix
          */
-        Matrix &operator=(const Matrix &matrix) {
+        Matrix& operator=(const Matrix& matrix) {
             if (this == &matrix) {
                 return *this;
             }
@@ -138,7 +168,7 @@ namespace matrix {
         void resize(std::size_t r, std::size_t c) {
             rows_ = r;
             cols_ = c;
-            for (auto &col : m_) {
+            for (auto& col : m_) {
                 col.resize(cols_, static_cast<T>(0));
             }
             m_.resize(rows_, std::vector<T>(cols_, static_cast<T>(0)));
@@ -159,7 +189,7 @@ namespace matrix {
          */
         void resize_cols(std::size_t c) {
             cols_ = c;
-            for (auto &col : m_) {
+            for (auto& col : m_) {
                 col.resize(cols_, static_cast<T>(0));
             }
         }
@@ -168,11 +198,11 @@ namespace matrix {
          * Write matrix to text file with given filename/path
          * @param filename filename/path to be written to
          */
-        void write(const std::string &filename) const {
+        void write(const std::string& filename) const {
             std::ofstream ofs(filename);
             if (ofs.is_open()) {
-                for (const auto &row : m_) {
-                    for (const auto &el : row) {
+                for (const auto& row : m_) {
+                    for (const auto& el : row) {
                         ofs << el << " ";
                     }
                     ofs << std::endl;
@@ -187,8 +217,8 @@ namespace matrix {
          * Write matrix to standard output
          */
         void write() const {
-            for (const auto &row : m_) {
-                for (const auto &el : row) {
+            for (const auto& row : m_) {
+                for (const auto& el : row) {
                     std::cout << el << " ";
                 }
                 std::cout << std::endl;
@@ -200,7 +230,7 @@ namespace matrix {
          * @param idx index of row to be accessed
          * @return row at index idx
          */
-        row_t<T> &operator[](std::size_t idx) {
+        row_t<T>& operator[](std::size_t idx) {
             return m_[idx];
         }
 
@@ -209,7 +239,7 @@ namespace matrix {
          * @param idx index of row to be accessed
          * @return row at index idx
          */
-        const row_t<T> &operator[](std::size_t idx) const {
+        const row_t<T>& operator[](std::size_t idx) const {
             return m_[idx];
         }
 
@@ -218,7 +248,7 @@ namespace matrix {
          * @param rhs matrix to be added
          * @return result of addition
          */
-        const Matrix operator+(const Matrix &rhs) const {
+        const Matrix operator+(const Matrix& rhs) const {
             if (rows_ != rhs.rows_ || cols_ != rhs.cols_) {
                 throw std::invalid_argument("matrix dimensions not equal");
             }
@@ -258,14 +288,14 @@ namespace matrix {
          * @return result of addition
          */
         template<typename S, typename V>
-        friend const Matrix<S> operator+(V lhs, const Matrix<S> &rhs);
+        friend const Matrix<S> operator+(V lhs, const Matrix<S>& rhs);
 
         /**
          * Subtraction operator for element-wise subtraction of two matrices
          * @param rhs matrix to be subtracted
          * @return result of subtraction
          */
-        const Matrix operator-(const Matrix &rhs) const {
+        const Matrix operator-(const Matrix& rhs) const {
             if (rows_ != rhs.rows_ || cols_ != rhs.cols_) {
                 throw std::invalid_argument("matrix dimensions not equal");
             }
@@ -305,14 +335,14 @@ namespace matrix {
          * @return result of subtraction
          */
         template<typename S, typename V>
-        friend const Matrix<S> operator-(V lhs, const Matrix<S> &rhs);
+        friend const Matrix<S> operator-(V lhs, const Matrix<S>& rhs);
 
         /**
          * Multiplication operator for dot product of two matrices
          * @param rhs matrix to be multiplied
          * @return dot product
          */
-        const Matrix operator*(const Matrix &rhs) const {
+        const Matrix operator*(const Matrix& rhs) const {
             if (cols_ != rhs.rows_) {
                 throw std::invalid_argument("matrix dimensions not compatible");
             }
@@ -354,7 +384,7 @@ namespace matrix {
          * @return result of multiplication
          */
         template<typename S, typename V>
-        friend const Matrix<S> operator*(V lhs, const Matrix<S> &rhs);
+        friend const Matrix<S> operator*(V lhs, const Matrix<S>& rhs);
 
         /**
          * Unary minus operator
@@ -369,7 +399,7 @@ namespace matrix {
          * @param filename path to file which contains the matrix to be created
          * @return matrix
          */
-        static Matrix read(const std::string &filename) {
+        static Matrix read(const std::string& filename) {
             return Matrix(filename);
         }
 
@@ -450,6 +480,22 @@ namespace matrix {
             for (int i = 0; i < rows_; ++i) {
                 for (int j = 0; j < cols_; ++j) {
                     this->m_[i][j] -= rhs;
+                }
+            }
+            return *this;
+        }
+
+        /**
+         * Multiplication assignment operator
+         * @tparam S numeric type for value to be multiplied by
+         * @param rhs numeric value to be multiplied by
+         * @return reference to result matrix
+         */
+        template<typename S>
+        Matrix& operator*=(S rhs) {
+            for (int i = 0; i < rows_; ++i) {
+                for (int j = 0; j < cols_; ++j) {
+                    this->m_[i][j] *= rhs;
                 }
             }
             return *this;
@@ -623,6 +669,22 @@ namespace matrix {
         }
 
         /**
+         * Division assignment operator for dividing each element by given value
+         * @tparam S numeric type of value to be divided by
+         * @param rhs numeric value to be divided by
+         * @return reference to result matrix
+         */
+        template<typename S>
+        Matrix& operator/=(S rhs) {
+            for (int i = 0; i < rows_; ++i) {
+                for (int j = 0; j < cols_; ++j) {
+                    this->m_[i][j] /= rhs;
+                }
+            }
+            return *this;
+        }
+
+        /**
          * Tilde operator for matrix inversion
          * @return matrix inverse
          */
@@ -633,10 +695,9 @@ namespace matrix {
 
             Matrix inv(rows_);
             auto decomp = lup();
-            auto P = decomp.second.first.transpose();
+            auto P = decomp.second.first;
             for (int i = 0; i < rows_; ++i) {
-                Matrix b = {P[i]};
-                b = b.transpose();
+                Matrix b = P.col(i);
                 inv[i] = (decomp.first.bwd_sub(decomp.first.fwd_sub(b))).transpose().m_[0];
             }
             return inv.transpose();
@@ -659,13 +720,51 @@ namespace matrix {
             return res;
         }
 
+        /**
+         * Calculates the Euclidian norm of a given vector.
+         * @return Euclidian norm
+         */
+        T norm() const {
+            if (rows_ != 1 && cols_ != 1) {
+                throw std::invalid_argument("not a vector");
+            }
+
+            T s = 0;
+            for (int i = 0; i < rows_; ++i) {
+                for (int j = 0; j < cols_; ++j) {
+                    s += m_[i][j] * m_[i][j];
+                }
+            }
+
+            return sqrt(s);
+        }
+
+        /**
+         * Multiplication operator for element-wise multiplication of two matrices
+         * @param rhs matrix to be mutliplied by
+         * @return result of multiplication
+         */
+        const Matrix mult(const Matrix& rhs) const {
+            if (rows_ != rhs.rows_ || cols_ != rhs.cols_) {
+                throw std::invalid_argument("matrix dimensions not equal");
+            }
+
+            Matrix res(*this);
+            for (int i = 0; i < rows_; ++i) {
+                for (int j = 0; j < cols_; ++j) {
+                    res.m_[i][j] *= rhs.m_[i][j];
+                }
+            }
+            return res;
+        }
+
     private:
         /**
          * Text matrix reader
          * @param filename path to file
          * @return matrix in raw form
          */
-        matrix_t<T> read_constr(const std::string &filename) {
+        matrix_t<T> read_constr(const std::string& filename) {
             std::ifstream ifs(filename);
             std::string line;
             matrix_t<T> mat;
@@ -698,8 +797,8 @@ namespace matrix {
      * @param rhs matrix to which lhs will be added
      * @return result of addition
      */
-    template <typename T, typename S>
-    inline const Matrix<T> operator+(S lhs, const Matrix<T> &rhs) {
+    template<typename T, typename S>
+    inline const Matrix<T> operator+(S lhs, const Matrix<T>& rhs) {
         return rhs + lhs;
     }
 
@@ -711,8 +810,8 @@ namespace matrix {
      * @param rhs matrix from which lhs will be subtracted
      * @return result of subtraction
      */
-    template <typename T, typename S>
-    inline const Matrix<T> operator-(S lhs, const Matrix<T> &rhs) {
+    template<typename T, typename S>
+    inline const Matrix<T> operator-(S lhs, const Matrix<T>& rhs) {
         return rhs - lhs;
     }
 
@@ -724,8 +823,8 @@ namespace matrix {
      * @param rhs matrix which will be mutliplied with lhs
      * @return result of multiplication
      */
-    template <typename T, typename S>
-    inline const Matrix<T> operator*(S lhs, const Matrix<T> &rhs) {
+    template<typename T, typename S>
+    inline const Matrix<T> operator*(S lhs, const Matrix<T>& rhs) {
         return rhs * lhs;
     }
 
@@ -736,9 +835,9 @@ namespace matrix {
      * @param rhs right matrix
      * @return truth value of equality
      */
-    template <typename T>
+    template<typename T>
     inline bool operator==(const Matrix<T>& lhs, const Matrix<T>& rhs) {
-        if (&lhs == & rhs) {
+        if (&lhs == &rhs) {
             return true;
         }
         if (lhs.rows_ != rhs.rows_ || lhs.cols_ != rhs.cols_) {
@@ -754,7 +853,7 @@ namespace matrix {
      * @param rhs right matrix
      * @return truth value of equality
      */
-    template <typename T>
+    template<typename T>
     inline bool equals(const Matrix<T>& lhs, const Matrix<T>& rhs, std::false_type) {
         for (int i = 0; i < lhs.rows(); ++i) {
             for (int j = 0; j < lhs.cols(); ++j) {
@@ -773,7 +872,7 @@ namespace matrix {
      * @param rhs right matrix
      * @return truth value of equality
      */
-    template <typename T>
+    template<typename T>
     inline bool equals(const Matrix<T>& lhs, const Matrix<T>& rhs, std::true_type) {
         for (int i = 0; i < lhs.rows(); ++i) {
             for (int j = 0; j < lhs.cols(); ++j) {
@@ -792,11 +891,11 @@ namespace matrix {
      * @param rhs matrix
      * @return update output stream
      */
-    template <typename T>
+    template<typename T>
     std::ostream& operator<<(std::ostream& os, const Matrix<T>& rhs) {
         os << std::endl;
-        for (const auto &row : rhs.m_) {
-            for (const auto &el : row) {
+        for (const auto& row : rhs.m_) {
+            for (const auto& el : row) {
                 os << el << " ";
             }
             os << std::endl;
@@ -829,9 +928,56 @@ namespace matrix {
         return A / b;
     }
 
+    /**
+     * Calculate absolute values of elements of given matrix
+     * @tparam T numeric type
+     * @param m input matrix
+     * @return matrix with absolute value function applied to its elements
+     */
+    template<typename T>
+    Matrix<T> abs(Matrix<T> m) {
+        for (int i = 0; i < m.rows(); ++i) {
+            for (int j = 0; j < m.cols(); ++j) {
+                m[i][j] = fabs(m[i][j]);
+            }
+        }
+        return m;
+    }
+
+    /**
+     * Calculate sum of all elements of given matrix
+     * @tparam T numeric type
+     * @param m input matrix
+     * @return sum of all elements
+     */
+    template<typename T>
+    T sum(const Matrix<T>& m) {
+        T s = 0;
+        for (int i = 0; i < m.rows(); ++i) {
+            for (int j = 0; j < m.cols(); ++j) {
+                s += m[i][j];
+            }
+        }
+        return s;
+    }
+
+    /**
+     * Apply function to matrix element-wise
+     * @tparam T numeric type
+     * @param m input matrix
+     * @param f function to be applied
+     * @return matrix with the given function f applied to all the elements of the input matrix
+     */
+    template<typename T>
+    Matrix<T> apply(Matrix<T> m, f_t<T> f) {
+        for (int i = 0; i < m.rows(); ++i) {
+            for (int j = 0; j < m.cols(); ++j) {
+                m[i][j] = f(m[i][j]);
+            }
+        }
+        return m;
+    }
+
 }
 
-#endif //APR_MATRIX_H
-
-#pragma clang diagnostic push
-#pragma clang diagnostic push
+#endif //MATRIX_H
