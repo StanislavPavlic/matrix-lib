@@ -1,5 +1,5 @@
 ## The library
-This is a simple C++ implementation of a matrix library in C++.
+This is a simple implementation of a matrix library in C++.
 
 ## Usage
 In order to use the library in your own project using cmake, add these commands to your CMakeLists.txt:
